@@ -9,6 +9,7 @@ def put(name, snippet):
   Returns the name and snippet
   """
   logging.error("FIXME: Unimplemented - put({!r},{!r})".format(name, snippet))
+  return name, snippet
                                                                                     
   
 def get(name):
@@ -41,6 +42,18 @@ def main():
   
   arguments = parser.parse_args(sys.argv[1:])
   print "Arguments is {}".format(arguments)
+                                 
+  arguments  = vars(arguments)
+  print "Arguments are now {}".format(arguments)
+  command = arguments.pop("command")
   
+  if command == "put":
+    name, snippet = put(**arguments)
+    print("Store {!r} and {!r}".format(snippet, name))
+  elif command =="get":
+    snippet = get(**arguments)
+    print("Retrieved snippet {!r}".format(snippet))
+    
+      
 if __name__ == '__main__':  
   main()
