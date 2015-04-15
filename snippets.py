@@ -1,14 +1,23 @@
 ##!/usr/bin/python
 import logging
+import psycopg2
+
 
 logging.basicConfig(filename="snippets.log", level=logging.DEBUG)
+connection = psycopg2.connect("dbname='snippets' user='action' host='localhost'")
+logging.debug("Database connection establised")
 
 def put(name, snippet):
   """
   Store a snippet with an associated name
   Returns the name and snippet
   """
-  logging.error("FIXME: Unimplemented - put({!r},{!r})".format(name, snippet))
+  logging.info("Storing snippet - put({!r},{!r})".format(name, snippet))
+  cursor = connection.cursor()
+  command = "Insert into snippets values (%s, %s)"
+  cursor.execute(command, (name, snippet))
+
+  logging.debug("Snipper stored successfully")
   return name, snippet
                                                                                     
   
@@ -17,8 +26,17 @@ def get(name):
   If there is no such snippet...
   Returns the snippet.  
   """  
-  logging.error("FIXME: Unimplemented - get({!r})".format(name))
-  return ""
+  tup = ()
+  logging.info("Retrieving the snippet- get({!r})".format(name))
+  cursor = connection.cursor()
+  command = "select keyword,message from snippets where keyword='{}'".format(name)
+  print "Command is {}".format(command)
+  cursor.execute(command)
+  tup = cursor.fetchone()
+  print "tup is {}".format(tup)
+  #connection.commit()
+  logging.debug("Retrieved the snippet")
+  return tup[1]
 import argparse
 import sys 
 def main():
