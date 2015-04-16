@@ -33,10 +33,17 @@ def get(name):
   print "Command is {}".format(command)
   cursor.execute(command)
   tup = cursor.fetchone()
-  print "tup is {}".format(tup)
-  #connection.commit()
-  logging.debug("Retrieved the snippet")
-  return tup[1]
+  connection.commit()
+  if not tup:
+    snip = ""
+    err = True
+  else:
+    print "tup is {}".format(tup)
+    logging.debug("Retrieved the snippet")
+    snip = tup[1]
+    err = False
+  
+  return snip, err
 import argparse
 import sys 
 def main():
@@ -69,8 +76,11 @@ def main():
     name, snippet = put(**arguments)
     print("Store {!r} and {!r}".format(snippet, name))
   elif command =="get":
-    snippet = get(**arguments)
-    print("Retrieved snippet {!r}".format(snippet))
+    snippet, error = get(**arguments)
+    if error == True:
+      print "Snippet is non existent do ask for what exists"
+    else:
+      print("Retrieved snippet {!r}".format(snippet))
     
       
 if __name__ == '__main__':  
