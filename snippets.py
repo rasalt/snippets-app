@@ -15,16 +15,26 @@ def put(name, snippet):
   logging.info("Storing snippet - put({!r},{!r})".format(name, snippet))
   cursor = connection.cursor()
   
-  try:
-    command = "Insert into snippets values (%s, %s)"  
-    cursor.execute(command, (name, snippet))
-  except psycopg2.IntegrityError:
-    print "Updating "
-    connection.rollback()
-    command = "update snippets set message=%s where keyword=%s"
-    cursor.execute(command, (snippet,name))
+  with connection, connection.cursor() as cursor:
+    try:
+      command = "Insert into snippets values (%s, %s)"  
+      cursor.execute(command, (name, snippet))
+    except psycopg2.IntegrityError:
+      print "Updating "
+      connection.rollback()
+      command = "update snippets set message=%s where keyword=%s"
+      cursor.execute(command, (snippet,name))
     
-  connection.commit()
+    
+#    try:
+#      command = "Insert into snippets values (%s, %s)"  
+#      cursor.execute(command, (name, snippet))
+#    except psycopg2.IntegrityError:
+#      print "Updating "
+     # connection.rollback()
+#      command = "update snippets set message=%s where keyword=%s"
+#      cursor.execute(command, (snippet,name))
+    
     
   logging.debug("Snippet stored successfully")
   return name, snippet
@@ -37,22 +47,24 @@ def get(name):
   """  
   tup = ()
   logging.info("Retrieving the snippet- get({!r})".format(name))
-  cursor = connection.cursor()
-  command = "select keyword,message from snippets where keyword='{}'".format(name)
-  print "Command is {}".format(command)
-  cursor.execute(command)
-  tup = cursor.fetchone()
-  connection.commit()
+  #cursor = connection.cursor()
+  #command = "select keyword,message from snippets where keyword='{}'".format(name)
+  #print "Command is {}".format(command)
+  with connection, connection.cursor() as cursor:
+    cursor.execute("select message from snippets where keyword=%s", (name,))
+    tup = cursor.fetchone()
   if not tup:
     snip = ""
     err = True
   else:
     print "tup is {}".format(tup)
     logging.debug("Retrieved the snippet")
-    snip = tup[1]
+    snip = tup[0]
     err = False
   
   return snip, err
+
+
 import argparse
 import sys 
 def main():
