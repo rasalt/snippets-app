@@ -7,35 +7,24 @@ logging.basicConfig(filename="snippets.log", level=logging.DEBUG)
 connection = psycopg2.connect("dbname='snippets' user='action' host='localhost'")
 logging.debug("Database connection establised")
 
-def put(name, snippet):
+def put(name, snippet, hide):
   """
   Store a snippet with an associated name
   Returns the name and snippet
   """
   logging.info("Storing snippet - put({!r},{!r})".format(name, snippet))
   cursor = connection.cursor()
-  
+  print "Hide is {}".format(hide)
   with connection, connection.cursor() as cursor:
     try:
-      command = "Insert into snippets values (%s, %s)"  
-      cursor.execute(command, (name, snippet))
+      command = "Insert into snippets values (%s, %s, %s)"  
+      cursor.execute(command, (name, snippet, hide))
     except psycopg2.IntegrityError:
       print "Updating "
-      connection.rollback()
-      command = "update snippets set message=%s where keyword=%s"
-      cursor.execute(command, (snippet,name))
-    
-    
-#    try:
-#      command = "Insert into snippets values (%s, %s)"  
-#      cursor.execute(command, (name, snippet))
-#    except psycopg2.IntegrityError:
-#      print "Updating "
-     # connection.rollback()
-#      command = "update snippets set message=%s where keyword=%s"
-#      cursor.execute(command, (snippet,name))
-    
-    
+      connection.rollback() # without this it won't work.
+      command = "update snippets set message=%s, hidden=%s where keyword=%s"
+      cursor.execute(command, (snippet,hide,name))
+          
   logging.debug("Snippet stored successfully")
   return name, snippet
                                                                                     
@@ -47,9 +36,6 @@ def get(name):
   """  
   tup = ()
   logging.info("Retrieving the snippet- get({!r})".format(name))
-  #cursor = connection.cursor()
-  #command = "select keyword,message from snippets where keyword='{}'".format(name)
-  #print "Command is {}".format(command)
   with connection, connection.cursor() as cursor:
     cursor.execute("select message from snippets where keyword=%s", (name,))
     tup = cursor.fetchone()
@@ -64,6 +50,30 @@ def get(name):
   
   return snip, err
 
+def catalog(show):
+  """ Retrieves the catalog of the get function
+  """  
+  logging.info("Retrieving the Catalog 5nippet- catalog")
+  with connection, connection.cursor() as cursor:
+    cursor.execute("select * from snippets where hidden=%s OR hidden=False order by keyword", (show,)) 
+    catalog_rows = cursor.fetchall()
+  
+  for row in catalog_rows:
+    print "row {}".format(row)
+    
+def grep(string):
+  """ Retrieves the right row wit the grep string 
+  """  
+  logging.info("Retrieving the message with the right grep string")
+  with connection, connection.cursor() as cursor:
+    cursor.execute("select * from snippets where message like %s", (string+'%',))
+    rows = cursor.fetchall()
+  if rows:
+    for row in rows:
+      print "row is {}".format(row)
+  else:
+    print "No message was found with your grep string"
+      
 
 import argparse
 import sys 
@@ -71,7 +81,7 @@ def main():
   """Main function"""
   logging.info("Construction of parser")
   parser = argparse.ArgumentParser(description = "Store and retrieve snippets of text ")
-  #Adding subparser
+  #Adding subparserc
   subparsers = parser.add_subparsers(dest="command", help="Available Commands")
   
   #Subparser for the put command
@@ -79,12 +89,18 @@ def main():
   put_parser = subparsers.add_parser("put", help="Store a snippet")
   put_parser.add_argument("name", help="Name of snippet")
   put_parser.add_argument("snippet", help="Snippet text")
+  put_parser.add_argument("--hide", help="Whether to hide this snippert from search", action="store_true")
   
   logging.debug("Constructing get subparser")
   get_parser = subparsers.add_parser("get", help="Store a snippet")
   get_parser.add_argument("name", help="Name of snippet")
   
   
+  catalog_parser = subparsers.add_parser("catalog", help="Getting a catalog")
+  catalog_parser.add_argument("--show", help="Show all or not from the snippets table whether hidden or not", action="store_true")
+  
+  grep_parser = subparsers.add_parser("grep", help="Search for a string ")
+  grep_parser.add_argument("string",help="Grep string to search")
   
   arguments = parser.parse_args(sys.argv[1:])
   print "Arguments is {}".format(arguments)
@@ -102,6 +118,12 @@ def main():
       print "Snippet is non existent do ask for what exists"
     else:
       print("Retrieved snippet {!r}".format(snippet))
+  elif command == "catalog":
+    catalog(**arguments)
+  elif command == "grep":
+    grep(**arguments)
+    
+    
     
       
 if __name__ == '__main__':  
